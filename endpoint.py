@@ -5,7 +5,7 @@ from core.deps import get_lock, get_pipeline
 from fastapi import APIRouter, Depends, HTTPException
 from schema import ClusterGroupResponse, ClusterRequest, ClusterResponse
 
-logger = logging.getLogger("image_cluster_server")
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 

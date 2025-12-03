@@ -6,4 +6,4 @@ def get_pipeline(request: Request):
 
 
 def get_lock(request: Request):
-    return request.app.state.cluster_lock
+    return request.app.state.clusterer_lock

@@ -8,8 +8,8 @@ from domain.clusterers.gps_clusterer import GPSClusterer
 from domain.clusterers.img_clusterer import DeepCluster
 from domain.extractors.APGeM_extractor import APGeMDescriptorExtractor
 from domain.extractors.metadata_extractor import MetadataExtractor
-from domain.photometa import PhotoMeta
 from domain.runner import ClusterRunner
+from photometa import PhotoMeta
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class PhotoClusteringPipeline:
                 descriptor_extractor=apgem_extractor,
                 similarity_threshold=0.8,
                 geo_threshold=0.25,
-                knn_k=10,
+                knn_k=5,
             )
         }
 

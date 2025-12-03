@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable, List, Optional
 
-from domain.photometa import PhotoMeta
+from photometa import PhotoMeta
 
 
 class Clusterer(ABC):

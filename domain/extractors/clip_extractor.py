@@ -1,19 +1,20 @@
+from __future__ import annotations
+
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Optional
 
 import numpy as np
-from domain.photometa import PhotoMeta
+import timm
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from PIL import Image
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-)
+from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
+from torchvision import transforms
 
 
-class GlobalDescriptorExtractor:
+class CLIPDescriptorExtractor:
     """
     전역 임베딩 추출기 (Stage 2).
     - 기본 구현은 CLIP(OpenCLIP ViT-B/32) 기반

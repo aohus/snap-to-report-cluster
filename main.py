@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-image_cluster_server.py
+main.py
 
 맥북 로컬에서 동작하는 "이미지 클러스터링 전용" 서버.
 - new_deep_clusterer.DeepClusterer 를 내부에서 사용
@@ -17,12 +17,13 @@ import os
 from pathlib import Path
 from typing import Any
 
-# new_deep_clusterer.py 가 같은 디렉토리에 있다고 가정
-from domain.pipeline import PhotoClusteringPipeline
 from endpoint import router
 from fastapi import FastAPI
 
-logger = logging.getLogger("image_cluster_server")
+# new_deep_clusterer.py 가 같은 디렉토리에 있다고 가정
+from pipeline import PhotoClusteringPipeline
+
+logger = logging.getLogger("main")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -84,7 +85,7 @@ if __name__ == "__main__":
 
     # 예: http://127.0.0.1:8001/docs 에서 Swagger UI 확인 가능
     uvicorn.run(
-        "image_cluster_server:app",
+        "main:app",
         host="0.0.0.0",
         port=8001,
         reload=True,

@@ -32,7 +32,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 from domain.extractors.APGeM_extractor import APGeMDescriptorExtractor
-from domain.photometa import PhotoMeta
+from photometa import PhotoMeta
 from sklearn.neighbors import NearestNeighbors
 
 logger = logging.getLogger(__name__)

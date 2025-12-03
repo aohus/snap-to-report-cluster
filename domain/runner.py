@@ -2,7 +2,7 @@ import logging
 from typing import List
 
 from domain.clusterers.base_clusterer import Clusterer
-from domain.photometa import PhotoMeta
+from photometa import PhotoMeta
 
 logger = logging.getLogger(__name__)
 

@@ -4,7 +4,7 @@ from collections import Counter
 from typing import List, Optional
 
 from domain.clusterers.base_clusterer import Clusterer
-from domain.photometa import PhotoMeta
+from photometa import PhotoMeta
 from pyproj import Geod
 
 try:

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional, Tuple
 
 import piexif
-from domain.photometa import PhotoMeta
+from photometa import PhotoMeta
 
 logger = logging.getLogger(__name__)
 
