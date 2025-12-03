@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field, validator
+from typing import Optional
+from pydantic import BaseModel, Field, validator, HttpUrl
 
 
 class ClusterRequest(BaseModel):
@@ -13,6 +14,12 @@ class ClusterRequest(BaseModel):
     )
     remove_people: bool = Field(
         True, description="사람 영역을 마스킹할지 여부 (DETR 사용)"
+    )
+    webhook_url: Optional[HttpUrl] = Field(
+        None, description="작업 완료 후 결과를 수신할 Webhook URL (POST 요청)"
+    )
+    request_id: Optional[str] = Field(
+        None, description="클라이언트 측 트래킹 ID"
     )
 
     @validator("photo_paths")
@@ -35,3 +42,10 @@ class ClusterResponse(BaseModel):
     total_photos: int
     total_clusters: int
     similarity_threshold: float
+
+
+class ClusterTaskResponse(BaseModel):
+    task_id: str
+    status: str = "processing"
+    message: str = "Clustering task accepted."
+    request_id: Optional[str] = None
