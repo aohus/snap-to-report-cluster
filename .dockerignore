@@ -1,0 +1,14 @@
+.git
+.gitignore
+.experiment
+.DS_Store
+__pycache__
+*.pyc
+venv
+env
+cluster_cache
+assets
+docs
+tests
+# app_v1은 v2 배포 시 제외
+app_v1

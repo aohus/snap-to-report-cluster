@@ -1,0 +1,14 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+python-multipart
+httpx==0.25.1
+# AI & Image dependencies
+numpy
+piexif
+Pillow
+# PyTorch (CPU only version will be handled in Dockerfile to save space)
+timm
+open_clip_torch
+scikit-learn
+opencv-python-headless
+transformers
