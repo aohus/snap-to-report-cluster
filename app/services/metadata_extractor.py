@@ -39,45 +39,68 @@ class MetadataExtractor:
         lat, lon, direction = self._get_gps_from_exif(exif)
         timestamp = self._parse_datetime_from_exif(exif)
 
-        focal_35mm = None
         orientation = None
+        focal_length = None
+        device = "Unknown"
         digital_zoom = None
+        iso_speed_rating = None
         scene_capture_type = None
         white_balance = None
-        exposure_mode = None
+        exposure_time = None
         flash = None
+
+        # for e in dir(piexif.ExifIFD):
+        #     if not e.startswith("__"):
+        #         if e in ["ISOSpeedRatings", "FNumber", "ExposureTime", "FocalLength"]:
+        #             tag = getattr(piexif.ExifIFD, e)
+        #             if tag in exif.get("Exif", {}):
+        #                 print(f"Tag {e} ({tag}): {exif['Exif'][tag]}")
 
         if exif is not None:
             exif_0th = exif.get("0th", {})
             exif_exif = exif.get("Exif", {})
 
             orientation = exif_0th.get(piexif.ImageIFD.Orientation)
+            
             focal_35mm = exif_exif.get(piexif.ExifIFD.FocalLengthIn35mmFilm)
-            if isinstance(focal_35mm, (tuple, list)):
-                focal_35mm = self._rational_to_float(focal_35mm)
+            focal_length = exif_exif.get(piexif.ExifIFD.FocalLength)
+            focal_length = focal_length or focal_35mm
+            if isinstance(focal_length, (tuple, list)):
+                focal_length = self._rational_to_float(focal_length)
+            
+            device = exif_0th.get(piexif.ImageIFD.Model, "Unknown")
+            if isinstance(device, bytes):
+                try:
+                    device = device.decode()
+                except UnicodeDecodeError:
+                    device = "Unknown"
 
             dz = exif_exif.get(piexif.ExifIFD.DigitalZoomRatio)
             digital_zoom = self._rational_to_float(dz)
+            iso_speed_rating = exif_exif.get(piexif.ExifIFD.ISOSpeedRatings)
+            exposure_time = exif_exif.get(piexif.ExifIFD.ExposureTime)
+            if isinstance(exposure_time, (tuple, list)):
+                exposure_time = self._rational_to_float(exposure_time)
 
             scene_capture_type = exif_exif.get(piexif.ExifIFD.SceneCaptureType)
             white_balance = exif_exif.get(piexif.ExifIFD.WhiteBalance)
-            exposure_mode = exif_exif.get(piexif.ExifIFD.ExposureMode)
             flash = exif_exif.get(piexif.ExifIFD.Flash)
-
         return PhotoMeta(
             id=generate_short_id('meta'),
             path=image_path,
             original_name=image_path.split("/")[-1],
+            device=device,
             lat=lat,
             lon=lon,
             # alt=alt,
             timestamp=timestamp,
-            focal_35mm=float(focal_35mm) if focal_35mm is not None else None,
             orientation=orientation,
             digital_zoom=digital_zoom,
             scene_capture_type=scene_capture_type,
             white_balance=white_balance,
-            exposure_mode=exposure_mode,
+            exposure_time=exposure_time,
+            iso_speed_rating=iso_speed_rating,
+            focal_length=focal_length,
             flash=flash,
             gps_img_direction=direction,
         )
@@ -148,7 +171,7 @@ class MetadataExtractor:
 
     def _get_gps_from_exif(self, exif: Optional[dict]) -> Tuple[Optional[float], Optional[float], Optional[float], Optional[float]]:
         if exif is None or "GPS" not in exif:
-            return None, None, None, None
+            return None, None, None
 
         gps = exif["GPS"]
         def convert_coord(coord, ref):

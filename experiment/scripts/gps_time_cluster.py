@@ -59,37 +59,39 @@ class PairDebugRecord:
 # Stage 1: GPS DBSCAN
 # -------------------------------------------------------------------
 
-EARTH_RADIUS_M = 6371000.0  # meters
+# EARTH_RADIUS_M = 6371000.0  # meters
 
 
-def latlon_to_xy_m(lat: float, lon: float, lat0: float, lon0: float) -> Tuple[float, float]:
-    lat_rad = math.radians(lat)
-    lon_rad = math.radians(lon)
-    lat0_rad = math.radians(lat0)
-    lon0_rad = math.radians(lon0)
-    x = (lon_rad - lon0_rad) * math.cos((lat_rad + lat0_rad) / 2.0) * EARTH_RADIUS_M
-    y = (lat_rad - lat0_rad) * EARTH_RADIUS_M
-    return x, y
+# def latlon_to_xy_m(lat: float, lon: float, lat0: float, lon0: float) -> Tuple[float, float]:
+#     lat_rad = math.radians(lat)
+#     lon_rad = math.radians(lon)
+#     lat0_rad = math.radians(lat0)
+#     lon0_rad = math.radians(lon0)
+#     x = (lon_rad - lon0_rad) * math.cos((lat_rad + lat0_rad) / 2.0) * EARTH_RADIUS_M
+#     y = (lat_rad - lat0_rad) * EARTH_RADIUS_M
+#     return x, y
 
 
-def gps_dbscan_cluster(
-    photos: List[PhotoMeta],
-    eps_m: float,
-    min_samples: int,
-) -> List[int]:
-    if not photos:
-        return []
-    lat0 = sum(p.lat for p in photos) / len(photos)
-    lon0 = sum(p.lon for p in photos) / len(photos)
+# def gps_dbscan_cluster(
+#     photos: List[PhotoMeta],
+#     eps_m: float,
+#     min_samples: int,
+# ) -> List[int]:
+#     if not photos:
+#         return []
+#     lat0 = sum(p.lat for p in photos) / len(photos)
+#     lon0 = sum(p.lon for p in photos) / len(photos)
 
-    coords = np.array(
-        [latlon_to_xy_m(p.lat, p.lon, lat0, lon0) for p in photos],
-        dtype=np.float32,
-    )
-    db = DBSCAN(eps=eps_m, min_samples=min_samples, metric="euclidean")
-    labels = db.fit_predict(coords)
-    return labels.tolist()
+#     coords = np.array(
+#         [latlon_to_xy_m(p.lat, p.lon, lat0, lon0) for p in photos],
+#         dtype=np.float32,
+#     )
+#     db = DBSCAN(eps=eps_m, min_samples=min_samples, metric="euclidean")
+#     labels = db.fit_predict(coords)
+#     return labels.tolist()
 
+def make_gps_cluster(config):
+    return GPSClusterer(config)
 
 @dataclass
 class GPSParams:
@@ -287,7 +289,9 @@ def run_one_experiment(
 
     # Stage1: GPS
     t0 = time.perf_counter()
-    gps_labels = gps_dbscan_cluster(photos, eps_m=exp.gps.eps_m, min_samples=exp.gps.min_samples)
+    gps = make_gps_cluster()
+    # gps_labels = gps(photos, eps_m=exp.gps.eps_m, min_samples=exp.gps.min_samples)
+    gps_labels = gps.cluster(photos, config)
     t1 = time.perf_counter()
     stage_times: Dict[str, float] = {"gps_dbscan": t1 - t0}
     n_gps_clusters = len({l for l in gps_labels if l >= 0})
@@ -322,8 +326,6 @@ def build_experiment_grid() -> List[ExperimentConfig]:
     gps_param_list = [
         GPSParams(eps_m=10.0, min_samples=3),
     ]
-
-
 
 def run_all_experiments(
     photos: List[PhotoMeta],

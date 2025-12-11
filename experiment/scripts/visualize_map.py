@@ -106,6 +106,9 @@ def load_ground_truth(sql_dump_path: str) -> Dict[str, str]:
                     if len(parts) < 4:
                         continue
                     
+                    job_id = parts[1]
+                    if job_id != 'job_TT4S88qoJe':
+                        continue
                     cluster_id = parts[2]
                     original_filename = parts[3]
                     
@@ -136,7 +139,6 @@ def format_timedelta(delta):
     hours, remainder = divmod(seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
     return f"{days}, {hours}:{minutes:02d}:{seconds:02d}"
-
 
 def jitter_ring_for_duplicates(
     photos: List[Dict[str, any]],
@@ -193,6 +195,7 @@ def jitter_ring_for_duplicates(
 
     return photos
 
+
 def create_map(photos: List[Dict], output_file: str = "map.html", cluster_map: Dict[str, str] = {}):
     if not photos:
         print("No photos with GPS data found.")
@@ -242,9 +245,10 @@ def create_map(photos: List[Dict], output_file: str = "map.html", cluster_map: D
     distinct_colors = generate_distinct_colors(len(unique_clusters))
     cluster_color_map = {cid: distinct_colors[i] for i, cid in enumerate(unique_clusters)}
 
-    photos = jitter_ring_for_duplicates(photos, radius_m=2.0)
+    # photos = jitter_ring_for_duplicates(photos, radius_m=2.0)
+    photos = jitter_ring_for_duplicates(photos, radius_m=0.5)
 
-    is_cluster_ver = True
+    is_cluster_ver = False
     groups = defaultdict(list)
     if is_cluster_ver:
         for photo in photos:
@@ -264,6 +268,8 @@ def create_map(photos: List[Dict], output_file: str = "map.html", cluster_map: D
         path_coords = []
         sorted_photos = sorted(group, key=lambda x: x['timestamp'])
         for i, p in enumerate(sorted_photos):
+            same_coords = []
+            odd_coords = []
             lat, lon, timestamp, name = p['j_lat'], p['j_lon'], p['timestamp'], p['name']
             all_lat_lons.append([lat, lon])
             name = p['name']
@@ -271,6 +277,10 @@ def create_map(photos: List[Dict], output_file: str = "map.html", cluster_map: D
             # if ts.date() == date(2023, 8, 19):
             #     continue
             image_path = p['path']
+            device = p['device']
+            focal_length = p['focal_length']
+            exposure_time = p['exposure_time']
+            iso_speed_rating = p['iso_speed_rating']
             
             # Embed image as Base64
             img_base64 = image_to_base64(image_path)
@@ -279,7 +289,6 @@ def create_map(photos: List[Dict], output_file: str = "map.html", cluster_map: D
             cluster_color = cluster_color_map.get(cluster_id, '#808080') # Grey for unknown/noise
             cluster_label = cluster_id if cluster_id else "Unknown"
 
-            # Calculate distance to next point
             next_str = "<br>Next: <b>None</b>"
             if i < len(sorted_photos) - 1:
                 next_p = sorted_photos[i+1]
@@ -287,8 +296,12 @@ def create_map(photos: List[Dict], output_file: str = "map.html", cluster_map: D
                 time_diff = format_timedelta(next_p['timestamp'] - timestamp)
                 dist = haversine_distance(lat, lon, next_p['j_lat'], next_p['j_lon'])
                 next_str = f"<br>Next: <b>{is_same_cls} | {time_diff} | {dist:.2f} m</b>"
+                
+                short = ((next_p['timestamp'] - timestamp).total_seconds() < 120)
+                if (next_p['timestamp'] - timestamp).total_seconds() < 20:
+                    same_coords.append((lat, lon))
+                    same_coords.append((next_p['j_lat'], next_p['j_lon']))
             
-            # Calculate distance from prev point
             prev_str = "<br>Prev: <b>None</b>"
             if i > 0:
                 prev_p = sorted_photos[i-1]
@@ -297,11 +310,19 @@ def create_map(photos: List[Dict], output_file: str = "map.html", cluster_map: D
                 dist = haversine_distance(lat, lon, prev_p['j_lat'], prev_p['j_lon'])
                 prev_str = f"<br>Prev: <b>{is_same_cls} | {time_diff} | {dist:.2f} m</b>"
 
+                if (short and (timestamp - prev_p['timestamp']).total_seconds() > 300):
+                    odd_coords.append((lat, lon))
+                    odd_coords.append((next_p['j_lat'], next_p['j_lon']))
+
             popup_html = f"""
             <div style="width:320px">
                 <b>{name}</b><br>
                 <img src="{img_base64}" width="100%" style="border:1px solid #ccc; margin: 5px 0;"><br>
                 Cluster: <b>{cluster_label}</b><br>
+                Device: <b>{device}</b><br>
+                FocLen: <b>{focal_length}</b><br>
+                ExpTime: <b>{exposure_time}</b><br>
+                ISO: <b>{iso_speed_rating}</b><br>
                 Time: {format_timestamp(ts)}<br>
 
                 {prev_str}
@@ -313,8 +334,6 @@ def create_map(photos: List[Dict], output_file: str = "map.html", cluster_map: D
             folium.CircleMarker(
                 location=[lat, lon],
                 radius=6,
-                # popup=folium.Popup(popup_html, max_width=350),
-                # tooltip=f"{i+1}. {name} ({cluster_label})",
                 tooltip=folium.Tooltip(
                     popup_html,
                     max_width=350,
@@ -326,10 +345,27 @@ def create_map(photos: List[Dict], output_file: str = "map.html", cluster_map: D
                 fill_color=cluster_color,
                 fill_opacity=0.9
             ).add_to(m)
-            
-            path_coords.append((lat, lon))
 
-        # Draw line connecting points
+            if len(odd_coords) >= 2:
+                folium.PolyLine(
+                    odd_coords,
+                    color="green",
+                    weight=3.0,
+                    opacity=0.8,
+                    tooltip="Path"
+                ).add_to(m)
+
+            if len(same_coords) >= 2:
+                folium.PolyLine(
+                    same_coords,
+                    color="red",
+                    weight=3.0,
+                    opacity=0.8,
+                    tooltip="Path"
+                ).add_to(m)
+
+            # path_coords.append((lat, lon))
+
         if len(path_coords) >= 2:
             folium.PolyLine(
                 path_coords,
@@ -338,7 +374,7 @@ def create_map(photos: List[Dict], output_file: str = "map.html", cluster_map: D
                 opacity=0.8,
                 tooltip="Path"
             ).add_to(m)
-
+            
     # Add AntPath for animated movement visualization
     # plugins.AntPath(path_coords, delay=1000, color='blue', weight=2, opacity=0.6).add_to(m)
     
@@ -370,7 +406,7 @@ async def main():
     sql_dump_path = args.sql_dump
     if not sql_dump_path:
         base_dir = Path(__file__).resolve().parent.parent.parent
-        candidate = base_dir / ".experiment/dataset_sqldump/report_db_photos_2025-12-03_200313.sql"
+        candidate = base_dir / ".experiment/dataset_sqldump/report_db_photos_2025-12-10_141402.sql"
         print(candidate)
         if candidate.exists():
             sql_dump_path = str(candidate)
@@ -414,6 +450,10 @@ async def main():
                 
                 all_photos.append({
                     'path': f,
+                    'device': meta.device,
+                    'exposure_time': meta.exposure_time,
+                    'iso_speed_rating': meta.iso_speed_rating,
+                    'focal_length': meta.focal_length,
                     'name': meta.original_name,
                     'lat': meta.lat,
                     'lon': meta.lon,

@@ -43,14 +43,11 @@ class GPSClusterer(Clusterer):
         photos_without_gps = [p for p in photos if p.lat is None or p.lon is None]
 
         if not photos_with_gps:
-            # If no photos with GPS, each photo without GPS forms its own cluster
             return [[p] for p in photos_without_gps]
 
-        # Calculate a reference point (mean of all GPS photos)
         lat0 = sum(p.lat for p in photos_with_gps) / len(photos_with_gps)
         lon0 = sum(p.lon for p in photos_with_gps) / len(photos_with_gps)
 
-        # Convert lat/lon to local x,y coordinates in meters
         coords = np.array(
             [latlon_to_xy_m(p.lat, p.lon, lat0, lon0) for p in photos_with_gps],
             dtype=np.float32,
@@ -91,18 +88,7 @@ class GPSClusterer(Clusterer):
                     if best_label is not None:
                         clusters_dict[best_label].append(p)
         
-        # Format clusters
         gps_clusters = [sorted(photos, key=lambda p: p.timestamp or 0) for photos in clusters_dict.values()]
-        
-        # Add photos without GPS as individual clusters? 
-        # User said "avoid size 1, 2". But without GPS we can't cluster them spatially.
-        # We will just append them. If the user strictly forbids size 1, we might need to group them together?
-        # For now, assuming the constraint applies to the GPS clustering logic mostly.
-        # If we must avoid size 1/2 for non-GPS too, we'd have to group them all or merge into GPS clusters (impossible).
-        # Let's group all non-GPS photos into one cluster if they exist, or keep them separate?
-        # The requirement is "Cluster 1개의 사이즈가 대부분 3이 되도록...".
-        # For non-GPS, we don't have info. Let's put them all in one "Unknown Location" cluster if there are many?
-        # Or just leave them as is. The main logic requested is for "eps adjustment" (GPS).
         if photos_without_gps:
             gps_clusters.extend([[p] for p in photos_without_gps])
 
